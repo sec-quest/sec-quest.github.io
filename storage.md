@@ -1,49 +1,47 @@
-1. Create LVM volume group vgexp with a size of 1.5GB. The volume group should use three physical volumes that are created as partitions on the secondary disk.
-
-gdisk /dev/sdb
-creating three partitions with 8e00 type - Linux LVM
-pvcreate /dev/sdb1
-pvcreate /dev/sdb2
-pvcreate /dev/sdb2
-vgcreate vgexp /dev/sdb1 /dev/sdb2 /dev/sdb3
+## storage management
+Not exhaustive, and still in build, list of useful commands, options, etc.
 
 
-2. In the vgexp volume group, create a logical volume with the name lvexp. Format it with the ext4 file system, and mount it persistently on /exp.
+### useful commands
 
-lvcreate -n lvexp -l 80%FREE vgexp
-mkfs.ext4 /dev/vgexp/lvexp
-vim /etc/fstab
-	/dev/vgexam/lvexam	/exam	ext4	defaults	0 0
-mount -a
-
-OR
-
-cp /usr/lib/systemd/system/tmp.mount /etc/systemd/system/exam.mount
-vim /etc/systemd/system/exam.mount
-
-[Unit]
-Description=exam mount
-Documentation=doc.file
-Conflicts=umount.target
-Before=local-fs.target umount.target
-
-[Mount]
-What=/dev/vgexam/lvexam
-Where=/exam
-Type=ext4
-Options=defaults
-
-[Install]
-WantedBy=local-fs.target 
-
-systemctl enable --now exam.mount
+| **command** | **description** |
+|-------------|-----------------|
+| lsblk | shows partition structure of the disk |
+| blkid | shows info about storage devices |
+| pvs | shows all physical volumes |
+| vgs | shows all volume groups |
+| lvs | shows all logical volumes |
 
 
-3. Copy all files with the size greater than 1MB from the /etc directory to the new volume which is mounted on /exam.
 
-find /etc -type f -size +1M -exec cp {} /exam \;
+### most used partition types
 
-4. Create a snapshot of the lvexam volume with the name lvexam-snap, and with size of 100MB.
+| **fdisk** | **gdisk** | **type** |
+|-----------|-----------|----------|
+| 20 | 8300 | linux filesystem |
+| 19 | 8200 | linux swap |
+| 31 | 8e00 | linux lvm |
 
-lvcreate -s -n lvexam-snap -l 10M /dev/vgexam/lvexam
-ls -l /dev/mapper
+
+### creating lvm
+
+- create partitions in 'linux lvm' type
+- create physical volumes
+```sh
+pvcreate /dev/partition1 /dev/partition2
+```
+- create volume group (-s 1M resizes default extent - 4M - to 1M)
+```sh
+vgcreate -s 1M vgname /dev/partition1 /dev/partition2
+```
+- create logical volume
+```sh
+lvcreate -n lvname -L 1G vgname
+lvcreate -n lvname -l 80%FREE vgname
+```
+- create snapshot of given logical volume
+```sh
+lvcreate -s -n lvname-snap -l 10M /dev/vgname/lvname
+```
+
+
